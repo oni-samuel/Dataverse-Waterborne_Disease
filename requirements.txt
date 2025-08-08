@@ -1,8 +1,17 @@
+<<<<<<< HEAD
 streamlit==1.24.1
 pandas==1.5.3
 numpy==1.24.4
 xgboost==1.7.5
 scikit-learn==1.6.1
 imbalanced-learn==0.10.1
+=======
+streamlit==1.24.0
+pandas==1.5.3
+numpy==1.24.2
+scikit-learn==1.2.2
+imbalanced-learn==0.10.1
+xgboost==1.7.5
+>>>>>>> 627daea90d57bcfc732a5cfc4cf3296794364e14
 joblib==1.2.0
 scipy==1.10.1
