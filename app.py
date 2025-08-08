@@ -3,26 +3,36 @@ import pandas as pd
 import joblib
 import xgboost as xgb
 
-# Load regression model (XGBoost native format)
+# Load models
 regression_model = xgb.XGBRegressor()
 regression_model.load_model("xgboost_model.json")
 
-# Load classification pipeline (including preprocessing)
-classification_model = joblib.load("best_clas_model.pkl")
+classification_model = joblib.load("best_clas_pipeline.pkl")
 
 # Constants
 START_YEAR = 2015
 START_MONTH = 1
 
+# Expected column order for regression model
+FEATURE_ORDER = [
+    'Turbidity(NTU)', 'Ecoli_Count(CFU/100ml)', 'Nitrate(mg/L)', 'pH',
+    'Year', 'Month', 'Quarter', 'Time_Since_Start',
+    'Community_Ajegunle', 'Community_Bagamoyo', 'Community_Bonny', 'Community_Chibombo',
+    'Community_Dori', 'Community_Entebbe', 'Community_Garissa', 'Community_Gboko',
+    'Community_Ikorodu', 'Community_Kasoa', 'Community_Kibera', 'Community_Lamu',
+    'Community_Lokoja', 'Community_Makoko', 'Community_Maradi', 'Community_Mathare',
+    'Community_Nsawam', 'Community_Nzega', 'Community_Takoradi', 'Community_Zinder',
+    'Region_Coastal', 'Region_Dryland', 'Region_Peri-Urban', 'Region_Rural', 'Region_Urban Slum',
+    'Season_Dry', 'Season_Rainy'
+]
+
+# UI
 st.title("💧 Waterborne Disease Prediction App")
 
-# Sidebar - choose prediction type
 mode = st.sidebar.selectbox("Choose Prediction Type", ["Risk Level", "Waterborne Cases"])
 
-# Sidebar inputs
 year = st.sidebar.number_input("Year", min_value=2000, max_value=2100, value=2023)
 month = st.sidebar.selectbox("Month", list(range(1, 13)), index=0)
-
 quarter = ((month - 1) // 3) + 1
 time_since_start = (year - START_YEAR) * 12 + (month - START_MONTH)
 
@@ -43,11 +53,11 @@ selected_region = st.sidebar.selectbox("Region", regions)
 seasons = ["Dry", "Rainy"]
 selected_season = st.sidebar.selectbox("Season", seasons)
 
-# Prediction logic
+# Prediction
 if st.button("Predict"):
 
     if mode == "Waterborne Cases":
-        # Regression model expects one-hot encoded categorical features
+        # Build regression input dict
         input_data = {
             "Turbidity(NTU)": [turbidity],
             "Ecoli_Count(CFU/100ml)": [ecoli_count],
@@ -59,7 +69,7 @@ if st.button("Predict"):
             "Time_Since_Start": [time_since_start],
         }
 
-        # One-hot encode community, region, season
+        # One-hot encode
         for comm in communities:
             input_data[f"Community_{comm}"] = [1 if comm == selected_community else 0]
         for reg in regions:
@@ -69,11 +79,19 @@ if st.button("Predict"):
 
         input_df = pd.DataFrame(input_data)
 
+        # Ensure all expected columns exist
+        for col in FEATURE_ORDER:
+            if col not in input_df.columns:
+                input_df[col] = 0
+
+        # Reorder columns to match training exactly
+        input_df = input_df[FEATURE_ORDER]
+
         total_cases = regression_model.predict(input_df)[0]
         st.success(f"Estimated Total Waterborne Cases: {round(total_cases):,}")
 
     else:
-        # Classification pipeline expects raw categorical columns (it does encoding internally)
+        # Classification expects raw columns
         input_df = pd.DataFrame({
             "Region": [selected_region],
             "Community": [selected_community],
@@ -92,11 +110,8 @@ if st.button("Predict"):
         risk_probas = classification_model.predict_proba(input_df)[0]
 
         risk_map = {0: "Low", 1: "Medium", 2: "High"}
-
-        # Show max risk level with its probability
         max_index = risk_probas.argmax()
         max_risk = risk_map.get(max_index, "Unknown")
         max_prob = risk_probas[max_index]
 
         st.success(f"Predicted Risk Level: {max_risk} ({max_prob:.2%} confidence)")
-
