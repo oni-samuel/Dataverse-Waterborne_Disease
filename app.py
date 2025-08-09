@@ -7,7 +7,7 @@ import xgboost as xgb
 regression_model = xgb.XGBRegressor()
 regression_model.load_model("xgboost_model.json")
 
-classification_model = joblib.load("best_clas_pipeline.pkl")
+classification_model = joblib.load("best_clas_model.pkl")
 
 # Constants
 START_YEAR = 2015
